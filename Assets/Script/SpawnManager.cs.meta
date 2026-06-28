@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 738aa80c4b62cb945a2dfcaa55447914
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - zombiePrefab: {fileID: 2167125995555962294, guid: 93d12a82076bc094ba43a7b2f5e5cf9b, type: 3}
+  - firstAidPrefab: {fileID: 5237958582881794812, guid: 1c1e81a5676cd2e4c8d508c01e02a309, type: 3}
+  - coinPrefab: {fileID: 8189838324282683542, guid: b09922ef67b5bbe44acccde3d998f3d3, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
