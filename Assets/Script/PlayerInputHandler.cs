@@ -31,6 +31,8 @@ public class PlayerInputHandler : MonoBehaviour
     public bool SprintTriggered { get; private set; }
     public bool RotateObjectTriggered { get; private set; }
 
+    private bool jumpPressedThisFrame = false;
+
     private void Awake()
     {
         var map = playerControls.FindActionMap(actionMapName);
@@ -46,17 +48,20 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void Update()
     {
-        // Jika joystick digerakkan, gunakan joystick.
-        // Jika tidak, keyboard tetap bekerja seperti biasa.
         if (fixedJoystick != null)
         {
             Vector2 joystickInput = new Vector2(
                 fixedJoystick.Horizontal,
-                fixedJoystick.Vertical);
+                fixedJoystick.Vertical
+            );
 
             if (joystickInput.sqrMagnitude > 0.01f)
             {
                 MovementInput = joystickInput;
+            }
+            else
+            {
+                MovementInput = Vector2.zero;
             }
         }
     }
@@ -65,8 +70,7 @@ public class PlayerInputHandler : MonoBehaviour
     {
         movementAction.performed += ctx =>
         {
-            if (fixedJoystick == null ||
-                new Vector2(fixedJoystick.Horizontal, fixedJoystick.Vertical).sqrMagnitude <= 0.01f)
+            if (fixedJoystick == null)
             {
                 MovementInput = ctx.ReadValue<Vector2>();
             }
@@ -74,8 +78,7 @@ public class PlayerInputHandler : MonoBehaviour
 
         movementAction.canceled += ctx =>
         {
-            if (fixedJoystick == null ||
-                new Vector2(fixedJoystick.Horizontal, fixedJoystick.Vertical).sqrMagnitude <= 0.01f)
+            if (fixedJoystick == null)
             {
                 MovementInput = Vector2.zero;
             }
@@ -84,8 +87,16 @@ public class PlayerInputHandler : MonoBehaviour
         lookAction.performed += ctx => RotationInput = ctx.ReadValue<Vector2>();
         lookAction.canceled += ctx => RotationInput = Vector2.zero;
 
-        jumpAction.performed += ctx => JumpTriggered = true;
-        jumpAction.canceled += ctx => JumpTriggered = false;
+        jumpAction.performed += ctx =>
+        {
+            JumpTriggered = true;
+            jumpPressedThisFrame = true;
+        };
+
+        jumpAction.canceled += ctx =>
+        {
+            JumpTriggered = false;
+        };
 
         sprintAction.performed += ctx => SprintTriggered = true;
         sprintAction.canceled += ctx => SprintTriggered = false;
@@ -94,6 +105,40 @@ public class PlayerInputHandler : MonoBehaviour
         rotateObjectAction.canceled += ctx => RotateObjectTriggered = false;
     }
 
-    private void OnEnable() => playerControls.FindActionMap(actionMapName).Enable();
-    private void OnDisable() => playerControls.FindActionMap(actionMapName).Disable();
+    public void MobileJumpPressed()
+    {
+        JumpTriggered = true;
+        jumpPressedThisFrame = true;
+    }
+
+    public void MobileSprintDown()
+    {
+        SprintTriggered = true;
+    }
+
+    public void MobileSprintUp()
+    {
+        SprintTriggered = false;
+    }
+
+    public bool ConsumeJumpPressed()
+    {
+        if (jumpPressedThisFrame)
+        {
+            jumpPressedThisFrame = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void OnEnable()
+    {
+        playerControls.FindActionMap(actionMapName).Enable();
+    }
+
+    private void OnDisable()
+    {
+        playerControls.FindActionMap(actionMapName).Disable();
+    }
 }

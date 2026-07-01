@@ -14,17 +14,14 @@ public class GameManager : MonoBehaviour
     private bool gameEnded = false;
     private bool isPaused = false;
 
-    // =============================
-    // UI ADDITION
-    // =============================
     [Header("UI")]
     [SerializeField] private TextMeshProUGUI coinText;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private GameObject winPanel;
 
-    // =============================
-    // PROPERTY UNTUK UI
-    // =============================
+    [Header("Mobile UI")]
+    [SerializeField] private GameObject mobileControls;
+
     public int Coins => coins;
     public int ZombiesKilled => zombiesKilled;
     public bool GameEnded => gameEnded;
@@ -35,45 +32,113 @@ public class GameManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else
         {
+            // GameManager baru dari Level 2 hanya dipakai untuk mengirim UI ke GameManager utama
+            Instance.SetLevelUI(
+                coinText,
+                gameOverPanel,
+                winPanel,
+                mobileControls,
+                zombiesToWin
+            );
+
             Destroy(gameObject);
+            return;
         }
     }
 
     private void Start()
     {
+        SetupLevel();
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "MainMenu")
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            Time.timeScale = 1f;
+
+            SetMobileControls(false);
+
+            return;
+        }
+
+        SetupLevel();
+    }
+
+    private void SetLevelUI(
+        TextMeshProUGUI newCoinText,
+        GameObject newGameOverPanel,
+        GameObject newWinPanel,
+        GameObject newMobileControls,
+        int newZombiesToWin
+    )
+    {
+        coinText = newCoinText;
+        gameOverPanel = newGameOverPanel;
+        winPanel = newWinPanel;
+        mobileControls = newMobileControls;
+        zombiesToWin = newZombiesToWin;
+
+        Debug.Log("UI level baru berhasil dipasang ke GameManager utama");
+
+        SetupLevel();
+    }
+
+    private void SetupLevel()
+    {
         Time.timeScale = 1f;
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        gameEnded = false;
+        isPaused = false;
+        zombiesKilled = 0;
 
-        // hide UI awal
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
 
         if (winPanel != null)
             winPanel.SetActive(false);
+
+        SetMobileControls(true);
+
+        UpdateCoinUI();
     }
 
-    //==================================
-    // COIN
-    //==================================
+    private void SetMobileControls(bool active)
+    {
+        if (mobileControls != null)
+            mobileControls.SetActive(active);
+    }
+
+    private void UpdateCoinUI()
+    {
+        if (coinText != null)
+        {
+            coinText.text = coins.ToString();
+        }
+        else
+        {
+            Debug.LogWarning("CoinText belum dipasang ke GameManager!");
+        }
+    }
 
     public void AddCoins(int amount)
     {
         coins += amount;
-
-        if (coinText != null)
-            coinText.text = coins.ToString();
+        UpdateCoinUI();
 
         Debug.Log("Coin : " + coins);
     }
-
-    //==================================
-    // ZOMBIE
-    //==================================
 
     public void OnZombieKilled(int reward)
     {
@@ -92,10 +157,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //==================================
-    // PLAYER
-    //==================================
-
     public void PlayerDied()
     {
         if (gameEnded)
@@ -106,14 +167,16 @@ public class GameManager : MonoBehaviour
         Debug.Log("GAME OVER");
 
         if (gameOverPanel != null)
+        {
             gameOverPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("GameOverPanel belum dipasang ke GameManager!");
+        }
 
         EndGame();
     }
-
-    //==================================
-    // WIN
-    //==================================
 
     private void WinGame()
     {
@@ -125,26 +188,26 @@ public class GameManager : MonoBehaviour
         Debug.Log("YOU WIN");
 
         if (winPanel != null)
+        {
             winPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("WinPanel belum dipasang ke GameManager!");
+        }
 
         EndGame();
     }
 
-    //==================================
-    // END GAME
-    //==================================
-
     private void EndGame()
     {
+        SetMobileControls(false);
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         Time.timeScale = 0f;
     }
-
-    //==================================
-    // PAUSE
-    //==================================
 
     public void PauseGame()
     {
@@ -152,6 +215,8 @@ public class GameManager : MonoBehaviour
             return;
 
         isPaused = true;
+
+        SetMobileControls(false);
 
         Time.timeScale = 0f;
 
@@ -161,27 +226,43 @@ public class GameManager : MonoBehaviour
 
     public void ResumeGame()
     {
+        if (gameEnded)
+            return;
+
         isPaused = false;
+
+        SetMobileControls(true);
 
         Time.timeScale = 1f;
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
-
-    //==================================
-    // SCENE
-    //==================================
 
     public void RestartLevel()
     {
         Time.timeScale = 1f;
+
+        gameEnded = false;
+        isPaused = false;
+        zombiesKilled = 0;
+
+        SetMobileControls(true);
+
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public void LoadMainMenu()
     {
+        coins = 0;
+        zombiesKilled = 0;
+        gameEnded = false;
+        isPaused = false;
+
+        SetMobileControls(false);
+
         Time.timeScale = 1f;
+
         SceneManager.LoadScene("MainMenu");
     }
 
@@ -190,12 +271,25 @@ public class GameManager : MonoBehaviour
         Application.Quit();
     }
 
-    // OPTIONAL NEXT LEVEL
     public void NextLevel()
     {
         Time.timeScale = 1f;
 
+        gameEnded = false;
+        isPaused = false;
+        zombiesKilled = 0;
+
+        SetMobileControls(true);
+
         int nextScene = SceneManager.GetActiveScene().buildIndex + 1;
         SceneManager.LoadScene(nextScene);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
     }
 }

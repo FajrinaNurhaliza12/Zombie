@@ -11,17 +11,33 @@ public class PlayerHealth : MonoBehaviour
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
 
-    // ===== TAMBAHAN UI =====
+    // ===== UI HEALTH BAR =====
     [Header("UI")]
-    [SerializeField] private Image healthFill;
+    [SerializeField] private Slider healthSlider;
 
     private void Start()
     {
         currentHealth = maxHealth;
 
+        SetupHealthUI();
+
         UpdateHealthUI();
 
         Debug.Log("HP Player : " + currentHealth);
+    }
+
+    private void SetupHealthUI()
+    {
+        if (healthSlider != null)
+        {
+            healthSlider.minValue = 0f;
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = currentHealth;
+        }
+        else
+        {
+            Debug.LogWarning("Health Slider belum diassign pada PlayerHealth!");
+        }
     }
 
     public void TakeDamage(float amount)
@@ -57,16 +73,11 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("Heal : " + currentHealth);
     }
 
-    // ===== TAMBAHAN FUNCTION UI =====
     private void UpdateHealthUI()
     {
-        if (healthFill != null)
+        if (healthSlider != null)
         {
-            float value = currentHealth / maxHealth;
-
-            Debug.Log("FILL VALUE: " + value);
-
-            healthFill.fillAmount = value;
+            healthSlider.value = currentHealth;
         }
     }
 }

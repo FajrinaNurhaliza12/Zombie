@@ -4,36 +4,84 @@ using UnityEngine.SceneManagement;
 public class PauseMenu : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject pausePanel;
+    [SerializeField] private GameObject pausePanel;
 
-    void Start()
+    [Header("Mobile UI")]
+    [SerializeField] private GameObject mobileControls;
+
+    private bool isPaused = false;
+
+    private void Start()
     {
-        pausePanel.SetActive(false);
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+        else
+        {
+            Debug.LogError("Pause Panel belum diassign pada Inspector.");
+        }
+
+        if (mobileControls != null)
+            mobileControls.SetActive(true);
     }
 
     public void PauseGame()
     {
+        if (pausePanel == null) return;
+
+        isPaused = true;
+
         pausePanel.SetActive(true);
 
-        Time.timeScale = 0f;
+        if (mobileControls != null)
+            mobileControls.SetActive(false);
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.PauseGame();
+        }
+        else
+        {
+            Time.timeScale = 0f;
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 
     public void ResumeGame()
     {
+        if (pausePanel == null) return;
+
+        isPaused = false;
+
         pausePanel.SetActive(false);
 
-        Time.timeScale = 1f;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ResumeGame();
+        }
+        else
+        {
+            Time.timeScale = 1f;
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        if (mobileControls != null)
+            mobileControls.SetActive(true);
     }
 
     public void RestartGame()
     {
         Time.timeScale = 1f;
+
+        isPaused = false;
+
+        if (mobileControls != null)
+            mobileControls.SetActive(true);
 
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
@@ -42,6 +90,32 @@ public class PauseMenu : MonoBehaviour
     {
         Time.timeScale = 1f;
 
-        SceneManager.LoadScene("MainMenu");
+        isPaused = false;
+
+        if (mobileControls != null)
+            mobileControls.SetActive(false);
+
+        SceneManager.LoadScene("Main Menu");
+    }
+
+    public void NextLevel()
+    {
+        Time.timeScale = 1f;
+
+        isPaused = false;
+
+        if (mobileControls != null)
+            mobileControls.SetActive(true);
+
+        int nextScene = SceneManager.GetActiveScene().buildIndex + 1;
+
+        if (nextScene < SceneManager.sceneCountInBuildSettings)
+        {
+            SceneManager.LoadScene(nextScene);
+        }
+        else
+        {
+            Debug.Log("Finish Game");
+        }
     }
 }

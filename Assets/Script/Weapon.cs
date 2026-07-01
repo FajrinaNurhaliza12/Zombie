@@ -1,12 +1,15 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.EventSystems;
 
 public class Weapon : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private Transform firePoint;
+
+    // ===== TAMBAHAN SFX =====
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip shootSound;
 
     [Header("Weapon Settings")]
     [SerializeField] private float fireRate = 0.15f;
@@ -17,6 +20,9 @@ public class Weapon : MonoBehaviour
 
     private int currentAmmo;
     private float nextFireTime;
+
+    // Status tombol Attack
+    private bool isFireButtonHeld = false;
 
     private void Start()
     {
@@ -29,22 +35,33 @@ public class Weapon : MonoBehaviour
         HandleReload();
     }
 
+    // Dipanggil saat tombol Attack ditekan
+    public void FireButtonDown()
+    {
+        isFireButtonHeld = true;
+    }
+
+    // Dipanggil saat tombol Attack dilepas
+    public void FireButtonUp()
+    {
+        isFireButtonHeld = false;
+    }
+
     private void HandleShoot()
     {
-        // ===== FIX TAMBAHAN (PAUSE CHECK) =====
+        // Pause
         if (Time.timeScale == 0f)
             return;
 
-        // ===== FIX TAMBAHAN (BLOCK KLIK UI) =====
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        // Menembak hanya jika tombol Attack sedang ditekan
+        if (!isFireButtonHeld)
             return;
 
-        if (!Mouse.current.leftButton.isPressed)
-            return;
-
+        // Fire Rate
         if (Time.time < nextFireTime)
             return;
 
+        // Cek peluru
         if (currentAmmo <= 0)
         {
             Debug.Log("Peluru Habis!");
@@ -60,6 +77,12 @@ public class Weapon : MonoBehaviour
             firePoint.position,
             firePoint.rotation
         );
+
+        // ===== MAINKAN SUARA TEMBAKAN =====
+        if (audioSource != null && shootSound != null)
+        {
+            audioSource.PlayOneShot(shootSound);
+        }
 
         Debug.Log("Tembak | Sisa Peluru : " + currentAmmo);
     }
