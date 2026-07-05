@@ -35,25 +35,31 @@ public class FirstPersonController : MonoBehaviour
     private float CurrentSpeed =>
         walkSpeed * (playerInputHandlers.SprintTriggered ? sprintMultiplier : 1);
 
-    void Start()
+    private void Start()
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        if (jumpAudioSource != null)
+        {
+            jumpAudioSource.playOnAwake = false;
+            jumpAudioSource.loop = false;
+        }
+
         if (sprintAudioSource != null)
         {
-            sprintAudioSource.loop = true;
             sprintAudioSource.playOnAwake = false;
+            sprintAudioSource.loop = true;
         }
 
         if (walkAudioSource != null)
         {
-            walkAudioSource.loop = true;
             walkAudioSource.playOnAwake = false;
+            walkAudioSource.loop = true;
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (Time.timeScale == 0f)
         {
@@ -103,9 +109,12 @@ public class FirstPersonController : MonoBehaviour
             {
                 currentMovement.y = jumpForce;
 
-                StopAllMovementSounds();
+                StopWalkSound();
+                StopSprintSound();
 
                 PlayJumpSound();
+
+                Debug.Log("JUMP SOUND DIPANGGIL");
             }
         }
         else
@@ -133,10 +142,19 @@ public class FirstPersonController : MonoBehaviour
 
     private void PlayJumpSound()
     {
-        if (jumpAudioSource != null && jumpSound != null)
+        if (jumpAudioSource == null)
         {
-            jumpAudioSource.PlayOneShot(jumpSound);
+            Debug.LogWarning("Jump Audio Source belum diassign!");
+            return;
         }
+
+        if (jumpSound == null)
+        {
+            Debug.LogWarning("Jump Sound belum diassign!");
+            return;
+        }
+
+        jumpAudioSource.PlayOneShot(jumpSound);
     }
 
     private void HandleMovementSounds()
@@ -166,25 +184,49 @@ public class FirstPersonController : MonoBehaviour
 
     private void PlayWalkSound()
     {
-        if (walkAudioSource != null &&
-            walkSound != null &&
-            !walkAudioSource.isPlaying)
+        if (walkAudioSource == null)
+        {
+            Debug.LogWarning("Walk Audio Source belum diassign!");
+            return;
+        }
+
+        if (walkSound == null)
+        {
+            Debug.LogWarning("Walk Sound belum diassign!");
+            return;
+        }
+
+        if (!walkAudioSource.isPlaying)
         {
             walkAudioSource.clip = walkSound;
             walkAudioSource.loop = true;
             walkAudioSource.Play();
+
+            Debug.Log("WALK SOUND DIPANGGIL");
         }
     }
 
     private void PlaySprintSound()
     {
-        if (sprintAudioSource != null &&
-            sprintSound != null &&
-            !sprintAudioSource.isPlaying)
+        if (sprintAudioSource == null)
+        {
+            Debug.LogWarning("Sprint Audio Source belum diassign!");
+            return;
+        }
+
+        if (sprintSound == null)
+        {
+            Debug.LogWarning("Sprint Sound belum diassign!");
+            return;
+        }
+
+        if (!sprintAudioSource.isPlaying)
         {
             sprintAudioSource.clip = sprintSound;
             sprintAudioSource.loop = true;
             sprintAudioSource.Play();
+
+            Debug.Log("SPRINT SOUND DIPANGGIL");
         }
     }
 
