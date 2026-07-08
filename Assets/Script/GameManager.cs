@@ -59,7 +59,7 @@ public class GameManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == "MainMenu")
+        if (scene.name == "Main Menu")
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -263,7 +263,7 @@ public class GameManager : MonoBehaviour
 
         Time.timeScale = 1f;
 
-        SceneManager.LoadScene("MainMenu");
+        SceneManager.LoadScene("Main Menu");
     }
 
     public void QuitGame()

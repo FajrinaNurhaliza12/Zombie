@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 public class PlayerInputHandler : MonoBehaviour
@@ -8,6 +9,12 @@ public class PlayerInputHandler : MonoBehaviour
 
     [Header("Mobile Joystick")]
     [SerializeField] private FixedJoystick fixedJoystick;
+
+    [Header("Mobile Look")]
+    [SerializeField] private bool enableMobileLook = true;
+    [SerializeField] private bool useRightSideForLook = true;
+    [SerializeField] private bool ignoreTouchOverUI = true;
+    [SerializeField] private float mobileLookMultiplier = 1f;
 
     [Header("Action Map Name Reference")]
     [SerializeField] private string actionMapName = "Player";
@@ -33,9 +40,24 @@ public class PlayerInputHandler : MonoBehaviour
 
     private bool jumpPressedThisFrame = false;
 
+    private int lookFingerId = -1;
+    private Vector2 lastLookPosition;
+
     private void Awake()
     {
-        var map = playerControls.FindActionMap(actionMapName);
+        if (playerControls == null)
+        {
+            Debug.LogError("Player Controls belum diassign pada PlayerInputHandler!");
+            return;
+        }
+
+        InputActionMap map = playerControls.FindActionMap(actionMapName);
+
+        if (map == null)
+        {
+            Debug.LogError("Action Map tidak ditemukan: " + actionMapName);
+            return;
+        }
 
         movementAction = map.FindAction(movement);
         lookAction = map.FindAction(look);
@@ -48,61 +70,154 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void Update()
     {
-        if (fixedJoystick != null)
-        {
-            Vector2 joystickInput = new Vector2(
-                fixedJoystick.Horizontal,
-                fixedJoystick.Vertical
-            );
+        HandleMobileJoystick();
+        HandleMobileLook();
+    }
 
-            if (joystickInput.sqrMagnitude > 0.01f)
+    private void HandleMobileJoystick()
+    {
+        if (fixedJoystick == null)
+            return;
+
+        Vector2 joystickInput = new Vector2(
+            fixedJoystick.Horizontal,
+            fixedJoystick.Vertical
+        );
+
+        if (joystickInput.sqrMagnitude > 0.01f)
+        {
+            MovementInput = joystickInput;
+        }
+        else
+        {
+            MovementInput = Vector2.zero;
+        }
+    }
+
+    private void HandleMobileLook()
+    {
+        if (!enableMobileLook)
+            return;
+
+        if (Touchscreen.current == null)
+            return;
+
+        bool lookFingerStillActive = false;
+
+        foreach (var touch in Touchscreen.current.touches)
+        {
+            if (!touch.press.isPressed)
+                continue;
+
+            int fingerId = touch.touchId.ReadValue();
+            Vector2 currentPosition = touch.position.ReadValue();
+
+            if (lookFingerId == -1)
             {
-                MovementInput = joystickInput;
+                if (useRightSideForLook && currentPosition.x < Screen.width * 0.5f)
+                    continue;
+
+                if (ignoreTouchOverUI &&
+                    EventSystem.current != null &&
+                    EventSystem.current.IsPointerOverGameObject(fingerId))
+                    continue;
+
+                lookFingerId = fingerId;
+                lastLookPosition = currentPosition;
+                RotationInput = Vector2.zero;
+
+                return;
             }
-            else
+
+            if (fingerId == lookFingerId)
             {
-                MovementInput = Vector2.zero;
+                lookFingerStillActive = true;
+
+                Vector2 delta = currentPosition - lastLookPosition;
+                lastLookPosition = currentPosition;
+
+                RotationInput = delta * mobileLookMultiplier;
+
+                return;
+            }
+        }
+
+        if (!lookFingerStillActive)
+        {
+            lookFingerId = -1;
+
+            if (Application.isMobilePlatform)
+            {
+                RotationInput = Vector2.zero;
             }
         }
     }
 
     private void RegisterInputEvents()
     {
-        movementAction.performed += ctx =>
+        if (movementAction != null)
         {
-            if (fixedJoystick == null)
+            movementAction.performed += ctx =>
             {
-                MovementInput = ctx.ReadValue<Vector2>();
-            }
-        };
+                if (fixedJoystick == null)
+                {
+                    MovementInput = ctx.ReadValue<Vector2>();
+                }
+            };
 
-        movementAction.canceled += ctx =>
-        {
-            if (fixedJoystick == null)
+            movementAction.canceled += ctx =>
             {
-                MovementInput = Vector2.zero;
-            }
-        };
+                if (fixedJoystick == null)
+                {
+                    MovementInput = Vector2.zero;
+                }
+            };
+        }
 
-        lookAction.performed += ctx => RotationInput = ctx.ReadValue<Vector2>();
-        lookAction.canceled += ctx => RotationInput = Vector2.zero;
-
-        jumpAction.performed += ctx =>
+        if (lookAction != null)
         {
-            JumpTriggered = true;
-            jumpPressedThisFrame = true;
-        };
+            lookAction.performed += ctx =>
+            {
+                if (!Application.isMobilePlatform)
+                {
+                    RotationInput = ctx.ReadValue<Vector2>();
+                }
+            };
 
-        jumpAction.canceled += ctx =>
+            lookAction.canceled += ctx =>
+            {
+                if (!Application.isMobilePlatform)
+                {
+                    RotationInput = Vector2.zero;
+                }
+            };
+        }
+
+        if (jumpAction != null)
         {
-            JumpTriggered = false;
-        };
+            jumpAction.performed += ctx =>
+            {
+                JumpTriggered = true;
+                jumpPressedThisFrame = true;
+            };
 
-        sprintAction.performed += ctx => SprintTriggered = true;
-        sprintAction.canceled += ctx => SprintTriggered = false;
+            jumpAction.canceled += ctx =>
+            {
+                JumpTriggered = false;
+            };
+        }
 
-        rotateObjectAction.performed += ctx => RotateObjectTriggered = true;
-        rotateObjectAction.canceled += ctx => RotateObjectTriggered = false;
+        if (sprintAction != null)
+        {
+            sprintAction.performed += ctx => SprintTriggered = true;
+            sprintAction.canceled += ctx => SprintTriggered = false;
+        }
+
+        if (rotateObjectAction != null)
+        {
+            rotateObjectAction.performed += ctx => RotateObjectTriggered = true;
+            rotateObjectAction.canceled += ctx => RotateObjectTriggered = false;
+        }
     }
 
     public void MobileJumpPressed()
@@ -134,11 +249,23 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void OnEnable()
     {
-        playerControls.FindActionMap(actionMapName).Enable();
+        if (playerControls != null)
+        {
+            InputActionMap map = playerControls.FindActionMap(actionMapName);
+
+            if (map != null)
+                map.Enable();
+        }
     }
 
     private void OnDisable()
     {
-        playerControls.FindActionMap(actionMapName).Disable();
+        if (playerControls != null)
+        {
+            InputActionMap map = playerControls.FindActionMap(actionMapName);
+
+            if (map != null)
+                map.Disable();
+        }
     }
 }
