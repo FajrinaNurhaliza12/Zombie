@@ -2,18 +2,24 @@ using UnityEngine;
 
 public class HealthPickup : MonoBehaviour
 {
+    [Header("Health Setting")]
     [SerializeField] private float healAmount = 25f;
 
-    private Vector3 startPos;
+    [Header("Sound Effect")]
+    [SerializeField] private AudioClip healthSound;
+    [SerializeField] private float soundVolume = 1f;
 
-    void Start()
+    private Vector3 startPos;
+    private bool alreadyPicked = false;
+
+    private void Start()
     {
         startPos = transform.position;
     }
 
-    void Update()
+    private void Update()
     {
-        transform.Rotate(0, 90f * Time.deltaTime, 0);
+        transform.Rotate(0f, 90f * Time.deltaTime, 0f);
 
         transform.position = new Vector3(
             startPos.x,
@@ -22,9 +28,13 @@ public class HealthPickup : MonoBehaviour
         );
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
+        if (alreadyPicked) return;
+
         if (!other.CompareTag("Player")) return;
+
+        alreadyPicked = true;
 
         PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
 
@@ -32,9 +42,14 @@ public class HealthPickup : MonoBehaviour
         {
             playerHealth.Heal(healAmount);
 
+            if (healthSound != null)
+            {
+                AudioSource.PlayClipAtPoint(healthSound, transform.position, soundVolume);
+            }
+
             Debug.Log("Medkit berhasil diklaim! HP bertambah +" + healAmount);
         }
 
         Destroy(gameObject);
     }
-}
+} 
